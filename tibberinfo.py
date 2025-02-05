@@ -6,6 +6,7 @@ from datetime import datetime
 import click
 import tibber
 
+
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
