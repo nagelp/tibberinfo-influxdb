@@ -5,6 +5,7 @@ from datetime import datetime
 
 import click
 import tibber
+
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -65,6 +66,7 @@ def get_current_price(home: tibber.TibberHome) -> list:
     ]
 
     return CurPriceInfo
+    print("test")
 
 
 async def main(
