@@ -2,12 +2,14 @@ import asyncio
 import os
 import pprint
 from datetime import datetime
+import sys
+
 
 import click
 import tibber
 
-
 from influxdb_client import InfluxDBClient
+
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 
@@ -66,8 +68,8 @@ def get_current_price(home: tibber.TibberHome) -> list:
         }
     ]
 
+    return False
     return CurPriceInfo
-    print("test")
 
 
 async def main(
