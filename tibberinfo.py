@@ -122,12 +122,10 @@ async def main(
             )
 
         price_records = list()
-        for entry in list(
-            zip(home.price_total, home.price_total.values(), home.price_level.values())
-        ):
-            starts_at = entry[0]
-            total = entry[1]
-            level = entry[2]
+        for entry in home.info["viewer"]["home"]["currentSubscription"]["priceInfo"]["today"]:  # fmt: skip
+            starts_at = entry["startsAt"]
+            total = entry["total"]
+            level = entry["level"]
             level_pretty = level.lower().replace("_", " ").title()
             numlevel = map_level_to_int(level)
 
@@ -147,12 +145,16 @@ async def main(
             )
 
         if verbose:
-            print(
-                f"First and last price records from Tibber, of {len(price_records)} total:"
-            )
-            pprint.pp(price_records[0])
-            print(f"[... {len(price_records) - 2} records ...]")
-            pprint.pp(price_records[-1])
+            if verbose > 1:
+                print(f"Price records from Tibber ({len(price_records)})")
+                pprint.pp(price_records)
+            else:
+                print(
+                    f"First and last price records from Tibber, of {len(price_records)} total:"
+                )
+                pprint.pp(price_records[0])
+                print(f"[... {len(price_records) - 2} records ...]")
+                pprint.pp(price_records[-1])
         if not influx_dry_run:
             if verbose:
                 print(
@@ -165,20 +167,22 @@ async def main(
         #
 
         # Look for data from the latest 3 hours:
-        query = f'from(bucket: "{influx_bucket}") |> range(start: -3h) |> filter(fn: (r) => r._measurement == "consumption" )'
-        result = query_api.query(org=influx_org, query=query)
+        result = None
+        if not influx_dry_run:
+            query = f'from(bucket: "{influx_bucket}") |> range(start: -3h) |> filter(fn: (r) => r._measurement == "consumption" )'
+            result = query_api.query(org=influx_org, query=query)
 
-        if verbose:
-            print("InfluxDB returned these entries for the last 3 hours:")
-            lines = []
-            for table in result:
-                for record in table.records:
-                    lines.append(
-                        # Translating UTC to local timezone to avoid confusion when
-                        # comparing with the Tibber records which are also in local time
-                        f"{datetime.astimezone(record.get_time())} {record.get_field()} {record.get_value()}"
-                    )
-            pprint.pp(sorted(lines))
+            if verbose:
+                print("InfluxDB returned these entries for the last 3 hours:")
+                lines = []
+                for table in result:
+                    for record in table.records:
+                        lines.append(
+                            # Translating UTC to local timezone to avoid confusion when
+                            # comparing with the Tibber records which are also in local time
+                            f"{datetime.astimezone(record.get_time())} {record.get_field()} {record.get_value()}"
+                        )
+                pprint.pp(sorted(lines))
 
         if load_history or not result:
             # Get 720 hours worth of data (API maximum on hour level)
@@ -210,8 +214,16 @@ async def main(
                 )
 
         if verbose:
-            print("Retrieved consumption records from Tibber:")
-            pprint.pp(consumption_records)
+            if verbose > 1:
+                print(f"Consumption records from Tibber ({len(consumption_records)})")
+                pprint.pp(consumption_records)
+            else:
+                print(
+                    f"First and last consumption records from Tibber, of {len(consumption_records)} total:"
+                )
+                pprint.pp(consumption_records[0])
+                print(f"[... {len(consumption_records) - 2} records ...]")
+                pprint.pp(consumption_records[-1])
         if not influx_dry_run:
             if verbose:
                 print(
@@ -258,7 +270,8 @@ async def main(
 )
 @click.option(
     "--verbose",
-    is_flag=True,
+    "-v",
+    count=True,
     help="Get lots of information printed",
 )
 @click.option(
